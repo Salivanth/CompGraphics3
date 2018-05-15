@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>ITC363 Assignment 3 - 3D Function Viewing Program</title>
+
+  <!-- WebGL shaders -->
+  <script type="x-shader/x-vertex" id="vertex-shader">
+    attribute vec4 vPosition;
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+
+    void
+    main()
+    {
+      gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+    }
+  </script>
+  <script type="x-shader/x-fragment" id="fragment-shader">
+    precision mediump float;
+    uniform vec4 fColour;
+
+    void
+    main()
+    {
+      gl_FragColor = fColour;
+    }
+  </script>
+
+  <!-- Javascript includes -->
+  <script type="text/javascript" src="../../Common/webgl-utils.js"></script>
+  <script type="text/javascript" src="../../Common/initShaders.js"></script>
+  <script type="text/javascript" src="../../Common/MV.js"></script>
+  <script type="text/javascript" src="function.js"></script>
+</head>
+<body>
+  <canvas id="gl-canvas" width="700" height="700">
+    Oh dear. Your browser doesn't support HTML5 Canvas elements.
+  </canvas>
+</body>
+</html>

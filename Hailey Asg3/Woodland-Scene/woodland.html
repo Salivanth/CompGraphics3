@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>ITC363 Assignment 3 - 3D Woodland Scene with Temple</title>
+
+  <!-- WebGL shaders -->
+  <script type="x-shader/x-vertex" id="vertex-shader">
+    attribute vec4 vPosition;
+    uniform mat4 modelView;
+    uniform mat4 projection;
+
+    void
+    main()
+    {
+      gl_Position = projection * modelView * vPosition;
+    }
+  </script>
+  <script type="x-shader/x-fragment" id="fragment-shader">
+    precision mediump float;
+    uniform vec4 fColour;
+
+    void
+    main()
+    {
+      gl_FragColor = fColour;
+    }
+  </script>
+
+  <!-- Javascript includes -->
+  <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+  <script type="text/javascript" src="../Common/initShaders.js"></script>
+  <script type="text/javascript" src="../Common/MV.js"></script>
+  <script type="text/javascript" src="shapes.js"></script>
+  <script type="text/javascript" src="tree.js"></script>
+  <script type="text/javascript" src="woodland.js"></script>
+</head>
+<body>
+  <div>
+    <h1>ITC363 Assignment 3 - 3D Woodland Scene with Temple</h1>
+    <h2>Instructions</h2>
+    <ul>
+      <li><b>W/S:</b> Move viewer forwards or backwards</li>
+      <li><b>A/D:</b> Move viewer left or right</li>
+      <li><b>Q/E:</b> Turn left or right</li>
+    </ul>
+  </div>
+  <canvas id="gl-canvas" width="600" height="600">
+    Oh dear. Your browser doesn't support HTML5 Canvas elements.
+  </canvas>
+</body>
+</html>
