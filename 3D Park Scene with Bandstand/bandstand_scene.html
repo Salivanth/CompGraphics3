@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute  vec4 vPosition;
+uniform mat4 modelView;
+uniform mat4 projection;
+
+void main() 
+{
+    gl_Position = projection*modelView*vPosition;
+} 
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+uniform vec4 colour;
+
+void
+main()
+{
+    gl_FragColor = colour;
+}
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="shapes.js"></script>
+<script type="text/javascript" src="bandstand.js"></script>
+<script type="text/javascript" src="bandstand_scene.js"></script>
+
+<body>
+<h3>User interface</h3>
+<p>Keyboard interaction:</p>
+<ul>
+  <li>W and S move the viewer respectively forwards and backwards along the view direction in 1 metre steps.</li>
+  <li>A and D move the viewer respectively left and right perpendicular to an unchanging view direction in 1 metre steps. This is unusual crabwise motion, but easy to implement.</li>
+  <li>Q and E swing the view direction respectively left and right in 2 degree increments, without changing the eye position.</li>
+</ul>
+<p>Button interaction:<p>
+<p>Just for fun I have included adjustment of the vertical field of view, initially set at 27 degrees, corresponding roughly to a standard 50mm SLR lens. It can be increased or decreased in steps of 6 degrees to a maximum of 45 degrees (approx 30mm SLR lens) and a minimum of 15 degrees (approx 90mm SLR lens).</p>
+<p><button id="Button1">Increase FoVY</button> <button id="Button2">Decrease FoVY</button></p>
+
+<canvas id="gl-canvas" width="768" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+
+</body>
+</html>
