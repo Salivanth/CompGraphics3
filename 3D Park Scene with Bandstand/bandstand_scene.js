@@ -25,8 +25,11 @@ const PATHWAY = vec4(0.3, 0.3, 0.3, 1.0); // Gravel grey
 const HEDGE = vec4(0.0, 0.3, 0.0, 1.0); // Dark green
 const LEAVES = vec4(0.0, 0.6, 0.0, 1.0); // Medium green
 const TRUNK = vec4(0.55, 0.25, 0.08, 1.0) // Brown
-const OCTAGON_BASE = vec4(1.0, 1.0, 1.0, 1.0); // White
-const OCTAGON_STEP = vec4(0.8, 0.8, 0.8, 1.0); // Light grey
+const BANDSTAND_BASE = vec4(0.95, 0.95, 0.95, 1.0); // White
+const BANDSTAND_STEP = vec4(0.8, 0.8, 0.8, 1.0); // Light grey
+const BANDSTAND_POST = vec4(0.4, 0.27, 0.13, 1.0) // Darker brown
+const BANDSTAND_ROOF_BASE = vec4(1.0, 0.9, 0.8, 1.0) // Moccasin.
+const BANDSTAND_ROOF = vec4(0.7, 0.12, 0.12, 1.0); // Terracotta red
 
 // Create grass between -1000 and 1000 meters.
 var grass = [
@@ -60,7 +63,9 @@ var numNSPathVertices = 4;
 var hedges = [];
 var trees = [];
 var steps = []; 
-var columns = [];
+var posts = [];
+var roofBase = [];
+var roof = [];
 
 window.onload = function init() {
 	
@@ -100,7 +105,8 @@ window.onload = function init() {
 	// Total number of vertices for buffer.
 	var totalVertices = sizeof['vec3'] * (numGrassVertices + numEWPathVertices +
 	numNSPathVertices + RectangularPrism.numVertices + Cylinder.numVertices + 
-	Cone.numVertices + Octagon.numVertices);
+	Cone.numVertices + Octagon.numVertices + Step.numVertices + 
+	OctagonalPyramid.numVertices);
 	
 	gl.bufferData(gl.ARRAY_BUFFER, totalVertices, gl.STATIC_DRAW);
 	
@@ -135,8 +141,12 @@ window.onload = function init() {
 	Octagon.offset = Cone.offset + Cone.numVertices;
 	gl.bufferSubData(gl.ARRAY_BUFFER, sizeof['vec3'] * Octagon.offset, flatten(Octagon.vertices));
 	
-	//OctagonalPrism.offset = Octagon.offset + Octagon.numVertices;
-	//gl.bufferSubData(gl.ARRAY_BUFFER, sizeof['vec3'] * OctagonalPrism.offset, flatten(OctagonalPrism.vertices));
+	Step.offset = Octagon.offset + Octagon.numVertices;
+	gl.bufferSubData(gl.ARRAY_BUFFER, sizeof['vec3'] * Step.offset, flatten(Step.vertices));
+	
+	// Make buffer space for roof.
+	OctagonalPyramid.offset = Step.offset + Step.numVertices;
+	gl.bufferSubData(gl.ARRAY_BUFFER, sizeof['vec3'] * OctagonalPyramid.offset, flatten(OctagonalPyramid.vertices));
 	
 	// Event handlers
 	// Buttons to change fovy
@@ -226,7 +236,14 @@ function render() {
 	trees.forEach(function(Tree) { Tree.render(worldViewMatrix) });
 	
 	// Render steps.
-	steps.forEach(function(Octagon) { Octagon.render(worldViewMatrix) });
+	steps.forEach(function(BandstandBase) { BandstandBase.render(worldViewMatrix) });
+	
+	// Render posts.
+	posts.forEach(function(RectangularPrism) { RectangularPrism.render(worldViewMatrix) });
+	
+	// Render roof. (Extendable to multiple bandstands)
+	roofBase.forEach(function(Octagon) { Octagon.render(worldViewMatrix) });
+	roof.forEach(function(OctagonalPyramid) { OctagonalPyramid.render(worldViewMatrix) });
 
 }
 
@@ -289,6 +306,37 @@ function generateTrees() {
 
 function generateBandstand() {
 	
-	var bandstandStepOne = vec3(8, 8, 0.3);
-	steps.push(new Octagon(vec3(0.0, 0.0, 0.4), 0, bandstandStepOne, OCTAGON_BASE));
+	// Scales needed for generation of Bandstand.
+	var bandstandStepOne = vec3(8, 8, 0.25);
+	var bandstandStepTwo = vec3(7.4, 7.4, 0.25);
+	var bandstandStepThree = vec3(6.8, 6.8, 0.25);
+	var squarePost = vec3(0.3, 0.3, 4);
+	var bandstandRoofBase = vec3(6.8, 6.8, 0);
+	var bandstandRoof = vec3(6.8, 6.8, 4);
+	
+	// Create steps.
+	steps.push(new BandstandStep(vec3(0, 0, 0), 0, bandstandStepOne, BANDSTAND_BASE, BANDSTAND_STEP));
+	steps.push(new BandstandStep(vec3(0, 0, 0.25), 0, bandstandStepTwo, BANDSTAND_BASE, BANDSTAND_STEP));
+	steps.push(new BandstandStep(vec3(0, 0, 0.5), 0, bandstandStepThree, BANDSTAND_BASE, BANDSTAND_STEP));
+	
+	// Create posts.
+	
+	// Create an octagon around which posts can be placed.
+	var angle = 2 * Math.PI / 8;
+	var radius = 6;
+	var x, y;
+	
+	for (i = 0; i < 8; i++) {
+		x = radius * Math.cos(angle * (i + 1.0/2.0));
+		y = radius * Math.sin(angle * (i + 1.0/2.0));
+		
+		//Rendering with x and y at -0.15 ensures the 0.3m posts are centered at the point.
+		//Otherwise, the posts wouldn't be symmetrical across the entire octagon.
+		posts.push(new RectangularPrism(vec3(x - 0.15, y - 0.15, 0.4), 0, squarePost, BANDSTAND_POST));
+	}
+	
+	// Create ceiling.
+	roofBase.push(new Octagon(vec3(0, 0, 4.5), 0, bandstandRoofBase, BANDSTAND_ROOF_BASE));
+	roof.push(new OctagonalPyramid(vec3(0, 0, 4.5), 0, bandstandRoof, BANDSTAND_ROOF));
+	
 }

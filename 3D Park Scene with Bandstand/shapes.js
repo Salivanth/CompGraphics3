@@ -178,7 +178,7 @@ Tree.prototype.render = function(worldViewMatrix) {
 
 // Octagon class.
 
-function Octagon(location, angle, scales, colour) {
+function Octagon(location, angle, scale, colour) {
 	this.trs = mult(translate(location), mult(rotate(angle, [0, 0, 1]), scalem(scale)));
 	this.colour = colour;
 }
@@ -200,8 +200,8 @@ Octagon.initModel = function() {
 	var vertices = [];
 	
 	for (var i = 0; i < 8; i++) {
-		x = radius * (Math.cos * (i + 1.0/2.0));
-		y = radius * (Math.sin * (i + 1.0/2.0));
+		x = radius * Math.cos(angle * (i + 1.0/2.0));
+		y = radius * Math.sin(angle * (i + 1.0/2.0));
 		vertices.push(vec3(x, y, 0));
 	}
 	
@@ -209,54 +209,93 @@ Octagon.initModel = function() {
 }
 
 Octagon.vertices = Octagon.initModel();
-	
-// OctagonalPrism class.
-/* function OctagonalPrism(location, angle, scales, baseColour, sideColour, height) {
-	
-	this.floor = new Octagon(location, angle, scales, baseColour);
-	
-	this.ceiling = new Octagon(
-		add(location, vec3(0, 0, height)), angle, scales, baseColour);
+
+// Step class. Used to create the sides of the bandstand steps.
+// Based off the Cylinder code.
+
+function Step(location, angle, scale, colour) {
+	this.trs = mult(translate(location), mult(rotate(angle, [0, 0, 1]), scalem(scale)));
+	this.colour = colour;
 }
 
-// Render function.
-OctagonalPrism.prototype.render = function(worldViewMatrix) {
-	
-	this.floor.render(worldViewMatrix);
-	this.ceiling.render(worldViewMatrix);
-	
-	gl.uniform4fv(colorLocation, flatten(this.sideColour));
+// Render function
+Step.prototype.render = function(worldViewMatrix) {
+	gl.uniform4fv(colorLocation, flatten(this.colour));
 	gl.uniformMatrix4fv(modelViewLocation, false, flatten(mult(worldViewMatrix, this.trs)));
-	gl.drawArrays(gl.TRIANGLE_FAN, OctagonalPrism.offset, OctagonalPrism.numVertices);
+	gl.drawArrays(gl.TRIANGLE_STRIP, Step.offset, Step.numVertices);
 }
 
 // Class fields.
-OctagonalPrism.numVertices = 16;
 
-OctagonalPrism.initModel = function() {
+Step.numVertices = 18;
+
+Step.initModel = function() {
 	
+	var x, y;
+	var angle = 2 * Math.PI / 8;
+	var radius = 1.0;
 	var vertices = [];
 	
-	this.floor = new Octagon(location, this.angle, this.scales, this.baseColour);
-	
-	this.ceiling = new Octagon(
-		add(location, vec3(0, 0, this.height)), this.angle, this.scales, this.baseColour);
-	
 	for (var i = 0; i < 8; i++) {
-		vertices.push(vec3(ceiling.vertices[i]));
-		vertices.push(vec3(floor.vertices[i]));
+		x = radius * Math.cos(angle * (i + 1.0/2.0));
+		y = radius * Math.sin(angle * (i + 1.0/2.0));
+		vertices.push(vec3(x, y, 0));
+		vertices.push(vec3(x, y, 1));
 	}
-
 	return vertices;
-	
 }
 
-OctagonalPrism.vertices = OctagonalPrism.initModel(); */
+Step.vertices = Step.initModel();
+
+// BandstandStep class.
+// Used to create one step of the bandstand.
+
+function BandstandStep(location, angle, scales, baseColour, stepColour) {
 	
+	this.floor = new Octagon(location, angle, scales, baseColour);
+	this.ceiling = new Octagon(add(location, vec3(0, 0, scales[2])), angle, scales, baseColour);
+	this.step = new Step(location, angle, scales, stepColour);
+}
+
+BandstandStep.prototype.render = function(worldViewMatrix) {
+	this.floor.render(worldViewMatrix);
+	this.ceiling.render(worldViewMatrix);
+	this.step.render(worldViewMatrix);
+}
 
 // OctagonalPyramid class.
+function OctagonalPyramid(location, angle, scale, colour) {
+	this.trs = mult(translate(location), mult(rotate(angle, [0, 0, 1]), scalem(scale)));
+	this.colour = colour;
+}
 
-// BandstandRoof class.
+// Render function
+OctagonalPyramid.prototype.render = function(worldViewMatrix) {
+	gl.uniform4fv(colorLocation, flatten(this.colour));
+	gl.uniformMatrix4fv(modelViewLocation, false, flatten(mult(worldViewMatrix, this.trs)));
+	gl.drawArrays(gl.TRIANGLE_FAN, OctagonalPyramid.offset, OctagonalPyramid.numVertices);
+}
+
+// Class fields.
+OctagonalPyramid.numVertices = 9;
+
+OctagonalPyramid.initModel = function() {
+	var x, y;
+	var angle = 2 * Math.PI / 8.0;
+	var radius = 1.0;
+	var vertices = [];
+	vertices.push(vec3(0, 0, 1)); // Peak of pyramid.
+	
+	for (var i = 0; i < 8; i++) {
+		x = radius * Math.cos(angle * (i + 1.0/2.0));
+		y = radius * Math.sin(angle * (i + 1.0/2.0));
+		vertices.push(vec3(x, y, 0));
+	}
+	
+	return vertices;
+}
+
+OctagonalPyramid.vertices = OctagonalPyramid.initModel();
 
 // CircularStrip class.
 
