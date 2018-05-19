@@ -1,74 +1,14 @@
-/* Author: Jay Bailey
-Assignment 3 Task 1 - Cartwheel Model */
+// Author: Jay Bailey
+// Creates the full bandstand scene.
 
-//----------------------------------------------------------------------------
-// The Cylinder class.
-// The constructor function for a cylinder.
-// Used in spokes and the wheel hub.
-// Arguments: A vec3 location, a floating-point angle (degrees) and a vec3 scales.
-function Cylinder(location, angle, scale, colour) {
-	var rs = mult(rotate(angle, [0, 0, 1]), scalem(scale));
-	this.trs = mult(translate(location), rs);
-	this.colour = colour;
-}
-
-// Render function for the cylinder.
-// Arguments:
-// 	offset - offset of vertices into current vertex attribute array.
-//	worldViewMatrix - current worldview transformation.
-
-Cylinder.prototype.render = function(offset, worldViewMatrix) {
-	gl.uniform4fv(fColour, flatten(this.colour));
-	gl.uniformMatrix4fv(modelViewLocation, false, flatten(mult, worldViewMatrix, this.trs));
-	gl.drawArrays(g1.TRIANGLE_STRIP, offset, Cylinder.numVertices);
-}
-
-// Cylinder class fields.
-// The number of vertices to represent a cylinder. 
-// (36 sides + closing vertex) x 2 circle-approximations.
-
-Cylinder.numVertices = 74;
-
-// Generator of model vertices - a class method.
-// Must appear before it is used for Cylinder.vertices.
-
-Cylinder.initModel = function() {
-	
-	// Vertices of the cylinder.
-	// Does not include ends of the cylinder.
-	// For that, use two Circle objects.
-	
-	var vertices = [];
-	for (n = 0; n <= 360; n += 10) {
-		x = Math.cos*((2 * Math.PI * n) / 360);
-		y = Math.sin*((2 * Math.PI * n) / 360);
-		vertices.push(vec3(x, y, 1));
-		vertices.push(vec3(x, y, -1));
-	}
-	
-	return vertices;
-}
-
-// The model vertices. (Class field)
-Cylinder.vertices = Cylinder.initModel();
-//----------------------------------------------------------------------------
-
+// Instantiate initial variables.
 "use strict;"
 var canvas;
 var gl;
 
-var numVertices  = 74;
-
-// Colors involved in the cartwheel.
-const RED = vec4(1.0, 0.0, 0.0, 1.0);
-const YELLOW = vec4(1.0, 1.0, 0.0, 1.0);
-const DARK_YELLOW = vec4(0.8, 0.8, 0.0, 1.0);
-const LIGHT_GREY = vec4(0.75, 0.75, 0.75, 1.0);
-const GREY = vec4(0.5, 0.5, 0.5, 1.0);
-
 var near = 0.1;			// non-negative and < cube limit
 var far = 10.0;			// > cube limit
-var radius = 1.0;
+var radius = 2.0;
 var theta  = Math.PI/3.0;	// Begin at 60 degrees
 var phi    = Math.PI/4.0;			// Begin at 45 degrees
 var dr = 2.0 * Math.PI/180.0;		// Make fine angular changes
@@ -80,76 +20,84 @@ var ytop = 2.0;
 var bottom = -2.0;
 
 var worldViewMatrix, modelViewMatrix, projectionMatrix;
-var modelViewLocation, projectionLocation;
-var colourLocation;
+var modelViewLocation, projectionLocation, colorLocation;
 
-var eye;
-const at = vec3(0.0, 0.0, 0.0);
-const up = vec3(0.0, 0.0, 1.0);  // Align camera to polar direction
+var eye = vec3(0.0, 0.0, 0.0);
+var at = vec3(0.0, 0.0, 0.0);   // Uses standing height.
+const up = vec3(0.0, 0.0, 1.0); // View-up point.
 
-var pointsArray = [];
-var colorsArray = [];
+// Colors
+const HUB_CYLINDER = vec4(1.0, 1.0, 0.0, 1.0); // Yellow
+const HUB_CIRCLE = vec4(0.85, 0.85, 0.0, 1.0); // Darker yellow.
+const SPOKES = vec4(1.0, 0.0, 0.0, 1.0); // Red
+const OUTER_RIM = vec4(0.8, 0.8, 0.8, 1.0); // Light grey.
+const INNER_RIM = vec4(0.95, 0.95, 0.95, 1.0); // White
+const RIM_SIDES = vec4(0.9, 0.7, 0.7, 1.0); // Pale red.
 
-var rimVertices = 0; // Number of rim vertices.
-var spokes = []; // An array for spokes.
-var hub = []; // An array for the hub.
-
-function cylinderTest() {
-	var x;
-	var y;
-	for (n = 0; n <= 360; n += 10){
-		x = Math.cos((2 * Math.PI * n) / 360);
-		y = Math.sin((2 * Math.PI * n) / 360);
-		pointsArray.push(vec4(x*radius, y*radius, 1.0, 1.0));
-		colorsArray.push(RED);
-		pointsArray.push(vec4(x*radius, y*radius, -1.0, 1.0));
-		colorsArray.push(RED);
-	}
-}
+// Arrays for instance transformations.
+var hubCylinder = [];
+var hubCircles = [];
+var spokes = [];
+var rimStrips = [];
+var rimSides = [];
 
 window.onload = function init() {
 	
-	// Set up dependencies.
-    canvas = document.getElementById( "gl-canvas" );
-    gl = WebGLUtils.setupWebGL( canvas );
-    if ( !gl ) { alert( "WebGL isn't available" ); }
+	// Initial dependencies.
+	canvas = document.getElementById("gl-canvas");
+    gl = WebGLUtils.setupWebGL(canvas);
+    if (!gl) { alert("WebGL isn't available"); }
 
-	// Configure viewport.
-    gl.viewport( 0, 0, canvas.width, canvas.height )
-    gl.clearColor( 1.0, 1.0, 1.0, 1.0 );
-    gl.enable(gl.DEPTH_TEST);
-
-    //  Load shaders.
-    var program = initShaders( gl, "vertex-shader", "fragment-shader" );
-    gl.useProgram( program );
+	// Adjust viewport.
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    aspect =  canvas.width/canvas.height;
 	
-	// Create shapes.
-    cylinderTest();
+	gl.clearColor(0.5, 0.5, 0.5, 1.0); // Create dark grey background.
+	gl.enable(gl.DEPTH_TEST);
 	
-	// pointsArray.push(new Cylinder(vec3(0.0, 0.0, -1.0), 0, vec3(1, 1, 1), RED)); 
+	//Initialise objects
+	generateHub();
+	generateSpokes();
+	generateRim();
 	
-	// Create buffers.
-    var cBuffer = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer );
-    gl.bufferData( gl.ARRAY_BUFFER, flatten(colorsArray), gl.STATIC_DRAW );
-
-    var vColor = gl.getAttribLocation( program, "vColor" );
-    gl.vertexAttribPointer( vColor, 4, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( vColor);
-
-    var vBuffer = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
-    gl.bufferData( gl.ARRAY_BUFFER, flatten(pointsArray), gl.STATIC_DRAW );
-
-    var vPosition = gl.getAttribLocation( program, "vPosition" );
-    gl.vertexAttribPointer( vPosition, 4, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( vPosition );
+	// Load shaders
+	var program = initShaders(gl, "vertex-shader", "fragment-shader");
+	gl.useProgram(program)
 	
-	// Get locations.
-    modelViewLocation = gl.getUniformLocation( program, "modelView" );
-    projectionLocation = gl.getUniformLocation( program, "projection" );
+	var vBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+	
+	var vPosition = gl.getAttribLocation(program, "vPosition");
+	gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(vPosition);
+	
+	// Look up locations
+	modelViewLocation = gl.getUniformLocation(program, "modelView");
+	projectionLocation = gl.getUniformLocation(program, "projection");
+	colorLocation = gl.getUniformLocation(program, "colour");
+	
+	// Total number of vertices for buffer.
+	var totalVertices = sizeof['vec3'] * (Cylinder.numVertices +
+	Circle.numVertices + CircularStrip.numVertices);
+	
+	gl.bufferData(gl.ARRAY_BUFFER, totalVertices, gl.STATIC_DRAW);
+	
+	// Calculate initial projection matrix.
+	var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+	projection = ortho(left, right, ytop, bottom, near, far);
+	gl.uniformMatrix4fv(projectionLocation, false, flatten(projection));
 
-// keys to change viewing position
+	// Make buffer space for trees.
+	Cylinder.offset = 0;
+	gl.bufferSubData(gl.ARRAY_BUFFER, sizeof['vec3'] * Cylinder.offset, flatten(Cylinder.vertices));
+
+	Circle.offset = Cylinder.offset + Cylinder.numVertices;
+	gl.bufferSubData(gl.ARRAY_BUFFER, sizeof['vec3'] * Circle.offset, flatten(Circle.vertices));
+	
+	CircularStrip.offset = Circle.offset + Circle.numVertices;
+	gl.bufferSubData(gl.ARRAY_BUFFER, sizeof['vec3'] * CircularStrip.offset, flatten(CircularStrip.vertices));
+	
+	// keys to change viewing position
 	window.onkeydown = function(event) {
 		var key = String.fromCharCode(event.keyCode);
 		switch( key ) {
@@ -176,29 +124,74 @@ window.onload = function init() {
 		}
 		render();
 	};
-
-    render();
+	
+	render();
 }
 
 function render() {
-	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	
-	// Calculate matrices.
 	eye = vec3(radius*Math.sin(theta)*Math.cos(phi),
 	           radius*Math.sin(theta)*Math.sin(phi),
 		 	   radius*Math.cos(theta));
-
-	modelViewMatrix = lookAt(eye, at , up);
+			   
+	worldViewMatrix = lookAt(eye, at, up);
 	projectionMatrix = ortho(left, right, bottom, ytop, near, far);
-
-	gl.uniformMatrix4fv(modelViewLocation, false, flatten(modelViewMatrix));
+	
+	gl.uniformMatrix4fv(modelViewLocation, false, flatten(worldViewMatrix));
 	gl.uniformMatrix4fv(projectionLocation, false, flatten(projectionMatrix));
 	
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, numVertices);
+	// Render central hub.
+	hubCylinder.forEach(function(Cylinder) { Cylinder.render(worldViewMatrix) });
+	hubCircles.forEach(function(Circle) { Circle.render(worldViewMatrix) });
 	
-	//spokes.push(new Cylinder(vec3(0, 0, -1), 0, vec3(1, 1, 1), RED));
-	//spokes[0].render(worldViewMatrix);
+	// Render spokes.
+	spokes.forEach(function(Cylinder) { Cylinder.render(worldViewMatrix) });
+	
+	// Render rim.
+	rimStrips.forEach(function(Cylinder) { Cylinder.render(worldViewMatrix) });
+	rimSides.forEach(function(CircularStrip) { CircularStrip.render(worldViewMatrix) });
 }
 
-
+function generateHub() {
 	
+	var hubScale = vec3(0.2, 0.2, 0.2);
+	var hubAngle = 0.0;
+	
+	hubCylinder.push(new Cylinder(vec3(0.0, 0.0, 0.0), hubAngle, hubScale, HUB_CYLINDER));
+	hubCircles.push(new Circle(vec3(0.0, 0.0, -0.2), hubAngle, hubScale, HUB_CIRCLE));
+	hubCircles.push(new Circle(vec3(0.0, 0.0, 0.2), hubAngle, hubScale, HUB_CIRCLE));
+}
+
+function generateSpokes() {
+	
+	var spokeScale = vec3(0.02, 0.02, 0.65)
+	var spokeAngle = 0.0;
+	
+	for (var i = 0; i < 12; i++) {
+		var x = Math.cos((2 * Math.PI * i * 30) / 360) * 0.2;
+		var y = Math.sin((2 * Math.PI * i * 30) / 360) * 0.2;
+		spokes.push(new Cylinder(vec3(x, y, 0.0), spokeAngle, spokeScale, SPOKES));
+	}
+}
+
+function generateRim() {
+	
+	var outerRimScale = vec3(1.0, 1.0, 0.1);
+	var innerRimScale = vec3(0.85, 0.85, 0.1);
+	var stripScale = vec3(1.0, 1.0, 0.1);
+	
+	var rimAngle = 0.0;
+	var stripAngle = 0.0;
+	
+	rimStrips.push(new Cylinder(vec3(0, 0, 0), rimAngle, outerRimScale, OUTER_RIM));
+	rimStrips.push(new Cylinder(vec3(0, 0, 0), rimAngle, innerRimScale, INNER_RIM));
+	
+	rimSides.push(new CircularStrip(vec3(0, 0, 0), stripAngle, stripScale, RIM_SIDES));
+	rimSides.push(new CircularStrip(vec3(0.0, 0.0, -0.2), stripAngle, stripScale, RIM_SIDES));
+}
+
+// Two problems:
+
+// One - outer wheel doesn't rotate on A-D axis.
+// Two - Not sure how to properly align spokes.
